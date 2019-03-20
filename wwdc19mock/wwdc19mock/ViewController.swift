@@ -10,6 +10,7 @@
 import UIKit
 import AVKit
 import CoreMedia
+//import CoreImage
 
 // ML
 import CoreML
@@ -57,7 +58,7 @@ let Crystallize = "Crystallize"
 let CrystallizeFilter = CIFilter(name: "CICrystallize", parameters: ["inputRadius" : 30])
 
 let Edges = "Edges"
-let EdgesEffectFilter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 5])
+//let EdgesEffectFilter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 5])
 
 let HexagonalPixellate = "Hex Pixellate"
 let HexagonalPixellateFilter = CIFilter(name: "CIHexagonalPixellate", parameters: ["inputScale" : 10])
@@ -78,21 +79,6 @@ let HistogramFilter = CIFilter(name: "CIHistogramDisplayFilter")
 
 //let HistogramFiler = CIFilter(name: "CIHistogramDisplayFilter", keysAndValues: kCIInputImageKey, inputImage(), "inputHeight", NSNumber(value: 100.0), "inputHighLimit", NSNumber(value: 1.0), "inputLowLimit", NSNumber(value: 0.0), nil)
 
-let Filters = [
-    CMYKHalftone: CMYKHalftoneFilter,
-    ComicEffect: ComicEffectFilter,
-    Crystallize: CrystallizeFilter,
-    Edges: EdgesEffectFilter,
-    HexagonalPixellate: HexagonalPixellateFilter,
-    Invert: InvertFilter,
-    Pointillize: PointillizeFilter,
-    LineOverlay: LineOverlayFilter,
-    Posterize: PosterizeFilter
-]
-
-//var FilterNames = [String](Filters.keys)
-//FilterNames.sort()
-
 
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
@@ -111,7 +97,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var PredictionLabel = UITextView()
     
     var MLCropFrame = CGRect()
-    var MLCropView
+    var MLCropView = UIView()
     
 
     override func viewDidLoad() {
@@ -122,6 +108,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         setupProcessedCameraImageView()
         setupMLCameraImageView()
         setupPredictionLabel()
+        setupBoundingCaptureRect()
     }
     
     override func viewDidAppear(_ animated: Bool) {
@@ -175,6 +162,17 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         view.addSubview(PredictionLabel)
     }
     
+    func setupBoundingCaptureRect() {
+        let width = self.view.frame.width / 4
+        let height = self.view.frame.height / 4
+        
+        MLCropFrame = CGRect(x: width, y: height, width: width, height: height)
+        MLCropView.frame = MLCropFrame
+        MLCropView.backgroundColor = .red
+        MLCameraView.addSubview(MLCropView)
+    }
+    
+    // Camera
     func configureCamera() {
         
         //Start capture session
@@ -215,14 +213,16 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
         // Filter Version
-        let filter = EdgesEffectFilter
+        //let filter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 10])
+        let filter = CIFilter(name: "CIPhotoEffectNoir")
+        
         connection.videoOrientation = .landscapeLeft
         
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {return}
         let cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
         filter!.setValue(cameraImage, forKey: kCIInputImageKey)
-        let filteredImage = UIImage(ciImage: filter!.value(forKey: kCIOutputImageKey) as! CIImage)
-        //let mlProcessedImage = filteredImage
+        var filteredImage = UIImage(ciImage: filter!.value(forKey: kCIOutputImageKey) as! CIImage)
+        
         
         // Asynchronously
         DispatchQueue.main.async {
@@ -230,6 +230,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         }
         
         // CoreML
+        /*
         let request = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
         guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
         guard let firstObservation = results.first else {return}
@@ -256,6 +257,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         guard let buffer =  buffer(from: filteredImage) else { return }
         try? VNImageRequestHandler(cvPixelBuffer: buffer, options: [:]).perform([request])
+        */
         
     }
     
