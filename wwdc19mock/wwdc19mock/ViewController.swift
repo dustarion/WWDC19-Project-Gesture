@@ -96,15 +96,16 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var PredictionLabelFrame = CGRect()
     var PredictionLabel = UITextView()
     
-    var MLCropFrame = CGRect()
-    var MLCropView = UIImageView()
+    var PredictionLabel2Frame = CGRect()
+    var PredictionLabel2 = UITextView()
     
-    var BackgroundImage : CIImage?
-    var CurrentProcessedImage : CIImage?
+//    var MLCropFrame = CGRect()
+//    var MLCropView = UIImageView()
+//
+//    var BackgroundImage : CIImage?
+//    var CurrentProcessedImage : CIImage?
     
-    // Others?
     
-    @IBOutlet weak var BottomToolBar: UIToolbar!
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -112,14 +113,12 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         // Setup Frames!
         setupCameraFrame()
         setupProcessedCameraImageView()
-        setupMLCameraImageView()
         setupPredictionLabel()
-        //setupBoundingCaptureRect()
+        setupPredictionLabel2()
     }
     
     override func viewDidAppear(_ animated: Bool) {
         configureCamera()
-        view.bringSubviewToFront(BottomToolBar)
     }
     
     func setupCameraFrame() {
@@ -142,28 +141,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         view.addSubview(processedCameraView)
     }
     
-    func setupMLCameraImageView() {
-        // Assuming Landscape
-        let width : CGFloat = self.view.frame.width / 2
-        let height = self.view.frame.height / 2
-        MLCameraFrame = CGRect(x: width, y: height, width: width, height: height)
-        
-        // Setup Imageview
-        MLCameraView.frame = MLCameraFrame
-        MLCameraView.backgroundColor = .blue
-        MLCameraView.contentMode = .scaleAspectFit
-        view.addSubview(MLCameraView)
-    }
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     func setupPredictionLabel() {
         // Assuming Landscape
         let width : CGFloat = (self.view.frame.width / 2) - 40
@@ -178,27 +155,21 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         view.addSubview(PredictionLabel)
     }
     
-//    func setupBoundingCaptureRect() {
-//        let width = self.view.frame.width / 2
-//        let height = self.view.frame.height / 2
-//
-//        MLCropFrame = CGRect(x: width, y: height, width: width, height: height)
-//        MLCropView.frame = MLCropFrame
-//        MLCropView.backgroundColor = .blue
-//        MLCameraView.addSubview(MLCropView)
-//    }
-    
-    
-    
-    
-    @IBAction func SetBG(_ sender: Any) {
-        BackgroundImage = CurrentProcessedImage
+    func setupPredictionLabel2() {
+        // Assuming Landscape
+        let width : CGFloat = (self.view.frame.width / 2) - 40
+        let height = (self.view.frame.height / 2) - 40
+        PredictionLabel2Frame = CGRect(x: width+60, y: height+60, width: width, height: height)
         
-        // Asynchronously
-        DispatchQueue.main.async {
-            self.MLCameraView.image = self.processedCameraView.image
-        }
+        // Setup Label
+        PredictionLabel2.frame = PredictionLabel2Frame
+        PredictionLabel2.textColor = .white
+        PredictionLabel2.backgroundColor = .black
+        PredictionLabel2.text = "Loading..."
+        view.addSubview(PredictionLabel2)
     }
+    
+    
 
     // Camera
     func configureCamera() {
@@ -238,40 +209,6 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
     }
     
-    
-    
-    func differenceOf(_ topRef: CGImage, with bottomRef: CGImage) -> CIImage? {
-        
-        // Dimensions
-        let bottomFrame = CGRect(x: 0, y: 0, width: bottomRef.width, height: bottomRef.height)
-        let topFrame = CGRect(x: 0, y: 0, width: topRef.width, height: topRef.height)
-        let renderFrame: CGRect = bottomFrame.union(topFrame).integral
-        
-        // Create context
-        let colorSpace = CGColorSpaceCreateDeviceRGB()
-        let bitmapInfo = CGBitmapInfo(rawValue: CGImageAlphaInfo.premultipliedLast.rawValue).rawValue
-        
-        guard let context = CGContext(data: nil, width: Int(renderFrame.size.width), height: Int(renderFrame.size.height), bitsPerComponent: 8, bytesPerRow: Int(renderFrame.size.width * 4), space: colorSpace, bitmapInfo: bitmapInfo)
-            else { return nil }
-        
-        // Draw images
-        context.setBlendMode(CGBlendMode.normal)
-        context.draw(bottomRef, in: bottomFrame.offsetBy(dx: -renderFrame.origin.x, dy: -renderFrame.origin.y))
-        context.setBlendMode(CGBlendMode.difference)
-        context.draw(topRef, in: topFrame.offsetBy(dx: -renderFrame.origin.x, dy: -renderFrame.origin.y))
-        context.setBlendMode(CGBlendMode.colorBurn)
-        context.draw(topRef, in: topFrame.offsetBy(dx: -renderFrame.origin.x, dy: -renderFrame.origin.y))
-        
-        // Create image from context
-        guard let imageRef = context.makeImage() else { return nil }
-        
-        let image = convertCGImageToCIImage(inputImage: imageRef)
-        return image
-    }
-    
-    
-
-    
     func apply(_ filter: CIFilter?, for image: CIImage) -> CIImage {
         guard let filter = filter else { return image }
         filter.setValue(image, forKey: kCIInputImageKey)
@@ -279,15 +216,15 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         return filteredImage as! CIImage
     }
     
-    func convertCIImageToCGImage(inputImage: CIImage) -> CGImage! {
-        let context = CIContext(options: nil)
-        return context.createCGImage(inputImage, from: inputImage.extent)
-    }
-    
-    func convertCGImageToCIImage(inputImage: CGImage) -> CIImage! {
-        var ciImage = CIImage(cgImage: inputImage)
-        return ciImage
-    }
+//    func convertCIImageToCGImage(inputImage: CIImage) -> CGImage! {
+//        let context = CIContext(options: nil)
+//        return context.createCGImage(inputImage, from: inputImage.extent)
+//    }
+//
+//    func convertCGImageToCIImage(inputImage: CGImage) -> CIImage! {
+//        var ciImage = CIImage(cgImage: inputImage)
+//        return ciImage
+//    }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
@@ -299,42 +236,14 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
 
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {return}
         var cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
-        CurrentProcessedImage = cameraImage
         cameraImage = apply(filter, for: cameraImage)
-        
-        var filteredImage = UIImage(ciImage: cameraImage)
-        
-        if BackgroundImage != nil {
-            
-            let Background = BackgroundImage!//apply(filter, for: BackgroundImage!)//self.BackgroundImage!//
-            //difference(leftImage: self.BackgroundImage!, rightImage: filteredImage
-            
-            guard let image1 = convertCIImageToCGImage(inputImage: cameraImage) else { return }
-            guard let image2 = convertCIImageToCGImage(inputImage: Background) else { return }
-            
-            let newImage = differenceOf(image1, with: image2)
-            //newImage = apply(filter, for: newImage!)
-            
-            DispatchQueue.main.async {
-                self.MLCameraView.image = UIImage(ciImage: newImage!)
-            }
-        }
-        
-        
-        
-        
-        //cameraImage = apply(filter, for: cameraImage)
-        
-        //filter!.setValue(cameraImage, forKey: kCIInputImageKey)
-        
-        //var filteredPreImage = filter!.value(forKey: kCIOutputImageKey) as! CIImage
-        //var filteredImage = UIImage(ciImage: filter!.value(forKey: kCIOutputImageKey) as! CIImage)
+        let filteredImage = UIImage(ciImage: cameraImage)
         
         // Asynchronously
         DispatchQueue.main.async {
             self.processedCameraView.image = filteredImage
         }
-        
+
         // CoreML
         let request = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
         guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
@@ -364,6 +273,38 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         //guard let buffer =  buffer(from: filteredImage) else { return }
         try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])
+        
+        // Filtered Image CoreML!!
+        
+        // CoreML
+        let request2 = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
+            guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
+            guard let firstObservation = results.first else {return}
+            
+            print(firstObservation.identifier, firstObservation.confidence)
+            DispatchQueue.main.async {
+                if firstObservation.confidence < 0.5{
+                    
+                    //For secondary vocalization
+                    self.old_char = ""
+                    self.PredictionLabel2.text = String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
+                    self.PredictionLabel2.textColor = .white
+                    
+                } else if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > 0.8{
+                    
+                    self.PredictionLabel2.text =  String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
+                    self.PredictionLabel2.textColor = .green
+                    self.old_char = String(firstObservation.identifier)
+                    
+                }
+            }
+            
+        }
+        
+        request2.imageCropAndScaleOption = .centerCrop
+        
+        guard let buffer =  buffer(from: filteredImage) else { return }
+        try? VNImageRequestHandler(cvPixelBuffer: buffer, options: [:]).perform([request2])
 
         
     }
