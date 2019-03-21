@@ -15,6 +15,7 @@
 		4913EAA52240FF35005874EA /* wwdc19mockTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4913EAA42240FF35005874EA /* wwdc19mockTests.swift */; };
 		4913EAB02240FF35005874EA /* wwdc19mockUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4913EAAF2240FF35005874EA /* wwdc19mockUITests.swift */; };
 		4968B8C62242AE0400299190 /* Gesture.mlmodel in Sources */ = {isa = PBXBuildFile; fileRef = 4968B8C52242AE0400299190 /* Gesture.mlmodel */; };
+		49A5F2E02243B86A00803588 /* ImageDifference.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49A5F2DF2243B86A00803588 /* ImageDifference.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -49,6 +50,7 @@
 		4913EAAF2240FF35005874EA /* wwdc19mockUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = wwdc19mockUITests.swift; sourceTree = "<group>"; };
 		4913EAB12240FF35005874EA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		4968B8C52242AE0400299190 /* Gesture.mlmodel */ = {isa = PBXFileReference; lastKnownFileType = file.mlmodel; name = Gesture.mlmodel; path = ../../Gesture.mlmodel; sourceTree = "<group>"; };
+		49A5F2DF2243B86A00803588 /* ImageDifference.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImageDifference.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -101,6 +103,7 @@
 			children = (
 				4913EA8F2240FF33005874EA /* AppDelegate.swift */,
 				4913EA912240FF33005874EA /* ViewController.swift */,
+				49A5F2DF2243B86A00803588 /* ImageDifference.swift */,
 				4913EA932240FF33005874EA /* Main.storyboard */,
 				4968B8C52242AE0400299190 /* Gesture.mlmodel */,
 				4913EA962240FF35005874EA /* Assets.xcassets */,
@@ -261,6 +264,7 @@
 			files = (
 				4913EA922240FF33005874EA /* ViewController.swift in Sources */,
 				4968B8C62242AE0400299190 /* Gesture.mlmodel in Sources */,
+				49A5F2E02243B86A00803588 /* ImageDifference.swift in Sources */,
 				4913EA902240FF33005874EA /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
