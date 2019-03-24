@@ -10,197 +10,113 @@
 import UIKit
 import AVKit
 import CoreMedia
+import Foundation
 //import CoreImage
 
 // ML
 import CoreML
 import Vision
 
-// Prediction Labels for Sign Language
-//enum HandSign: String {
-//    case A = "A"
-//    case B = "B"
-//    case C = "C"
-//    case D = "D"
-//    case E = "E"
-//    case F = "F"
-//    case G = "G"
-//    case H = "H"
-//    case I = "I"
-//    case J = "J"
-//    case k = "K"
-//    case L = "L"
-//    case M = "M"
-//    case N = "N"
-//    case O = "O"
-//    case P = "P"
-//    case Q = "Q"
-//    case R = "R"
-//    case S = "S"
-//    case T = "T"
-//    case U = "U"
-//    case V = "V"
-//    case W = "W"
-//    case X = "X"
-//    case Y = "Y"
-//    case Z = "Z"
-//    case nothing = "Empty"
-//}
-
-// Filters
-let CMYKHalftone = "CMYK Halftone"
-let CMYKHalftoneFilter = CIFilter(name: "CICMYKHalftone", parameters: ["inputWidth" : 20, "inputSharpness": 1])
-
-let ComicEffect = "Comic Effect"
-let ComicEffectFilter = CIFilter(name: "CIComicEffect")
-
-let Crystallize = "Crystallize"
-let CrystallizeFilter = CIFilter(name: "CICrystallize", parameters: ["inputRadius" : 30])
-
-let Edges = "Edges"
-//let EdgesEffectFilter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 5])
-
-let HexagonalPixellate = "Hex Pixellate"
-let HexagonalPixellateFilter = CIFilter(name: "CIHexagonalPixellate", parameters: ["inputScale" : 10])
-
-let Invert = "Invert"
-let InvertFilter = CIFilter(name: "CIColorInvert")
-
-let Pointillize = "Pointillize"
-let PointillizeFilter = CIFilter(name: "CIPointillize", parameters: ["inputRadius" : 30])
-
-let LineOverlay = "Line Overlay"
-let LineOverlayFilter = CIFilter(name: "CILineOverlay")
-
-let Posterize = "Posterize"
-let PosterizeFilter = CIFilter(name: "CIColorPosterize", parameters: ["inputLevels" : 5])
-
-let HistogramFilter = CIFilter(name: "CIHistogramDisplayFilter")
-
-//let HistogramFiler = CIFilter(name: "CIHistogramDisplayFilter", keysAndValues: kCIInputImageKey, inputImage(), "inputHeight", NSNumber(value: 100.0), "inputHighLimit", NSNumber(value: 1.0), "inputLowLimit", NSNumber(value: 0.0), nil)
-
-
-extension UIImage {
-    func crop( rect: CGRect) -> UIImage? {
-        var rect = rect
-        rect.origin.x*=self.scale
-        rect.origin.y*=self.scale
-        rect.size.width*=self.scale
-        rect.size.height*=self.scale
-        if self.cgImage == nil { return self }
-        let imageRef = self.cgImage!.cropping(to: rect)
-        let image = UIImage(cgImage: imageRef!, scale: self.scale, orientation: self.imageOrientation)
-        return image
-    }
-}
-
-
-
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
+    
+    var previewLayer: UIView!
+    var predictionLabel: UILabel!
+    
+    var alphabetTimer = Timer()
     
     // CoreML Model
     let model = try? VNCoreMLModel(for: Gesture().model)
     var old_char = ""
     
-    var rawCameraFrame = CGRect()
-    var processedCameraFrame = CGRect()
-    var processedCameraView = UIImageView()
+    var loadAlphabet = ""
+    var messageView: UIView!
+    var messageLabel: UILabel!
     
-    var MLCameraFrame = CGRect()
-    var MLCameraView = UIImageView()
-    
-    var PredictionLabelFrame = CGRect()
-    var PredictionLabel = UITextView()
-    
-    var PredictionLabel2Frame = CGRect()
-    var PredictionLabel2 = UITextView()
-    
-    var MLCropFrame = CGRect()
-    var MLCropView = UIView()
-//
-//    var BackgroundImage : CIImage?
-//    var CurrentProcessedImage : CIImage?
-    
-    
+    override func loadView() {
+        let view = UIView()
+        view.backgroundColor = .black
+        
+        // Preview Layer
+        previewLayer = UIView()
+        view.addSubview(previewLayer)
+        
+        // Prediction Layer
+        predictionLabel = UILabel()
+        view.addSubview(predictionLabel)
+        
+        // Message View
+        messageView = UIView()
+        view.addSubview(messageView)
+        
+        messageLabel = UILabel()
+        view.addSubview(messageLabel)
+        
+        predictionLabel.translatesAutoresizingMaskIntoConstraints = false
+        previewLayer.translatesAutoresizingMaskIntoConstraints = false
+        messageView.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            
+            // Preview Layer Anchors
+            previewLayer.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            previewLayer.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            previewLayer.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: 0.5),
+            previewLayer.widthAnchor.constraint(equalTo: previewLayer.heightAnchor, multiplier: 1.0),//.333333
+            
+            // Prediction Label
+            predictionLabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20),
+            predictionLabel.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20),
+            predictionLabel.heightAnchor.constraint(equalToConstant: 100),
+            predictionLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            predictionLabel.topAnchor.constraint(equalToSystemSpacingBelow: previewLayer.bottomAnchor, multiplier: 1),
+            
+            // Message Layer Anchors
+            //messageView.topAnchor.constraint(equalTo: view.topAnchor, constant: 20),
+            messageView.topAnchor.constraint(equalTo: predictionLabel.bottomAnchor,constant: 20),
+            messageView.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20),
+            messageView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            messageView.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 20),
+            messageView.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -20),
+            
+            // Message Label
+            messageLabel.bottomAnchor.constraint(equalTo: view.bottomAnchor, constant: -20),
+            messageLabel.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+            messageLabel.leftAnchor.constraint(equalTo: view.leftAnchor, constant: 30),
+            messageLabel.rightAnchor.constraint(equalTo: view.rightAnchor, constant: -30),
+            
+            ])
+        
+        self.view = view
+    }
     
     override func viewDidLoad() {
-        super.viewDidLoad()
+        previewLayer.backgroundColor = .darkGray
+        previewLayer.layer.cornerRadius = 20
+        previewLayer.layer.borderColor = UIColor.yellow.cgColor
+        previewLayer.layer.borderWidth = 2.0
+        previewLayer.layer.masksToBounds = true
+
+        predictionLabel.font = UIFont.systemFont(ofSize: 30, weight: .bold)
+        predictionLabel.textColor = .yellow
+        predictionLabel.textAlignment = .center
+        predictionLabel.text = "Predicting..."
+        predictionLabel.backgroundColor = .clear
+        predictionLabel.numberOfLines = 0
         
-        // Setup Frames!
-        setupCameraFrame()
-        setupProcessedCameraImageView()
-        setupPredictionLabel()
-        setupPredictionLabel2()
+        messageLabel.font = UIFont.systemFont(ofSize: 20, weight: .bold)
+        messageLabel.textColor = .white
+        messageLabel.textAlignment = .center
+        messageLabel.text = "test"
+        messageLabel.backgroundColor = .clear
+        
+        alphabetTimer = Timer.scheduledTimer(timeInterval: 2.0, target: self, selector: #selector(self.capturingLetter), userInfo: nil, repeats: true)
     }
+    
+    
     
     override func viewDidAppear(_ animated: Bool) {
         configureCamera()
-        setupCrop()
     }
     
-    func setupCameraFrame() {
-        // Assuming Landscape!
-        let width : CGFloat = self.view.frame.width / 2
-        let height = self.view.frame.height / 2
-        rawCameraFrame = CGRect(x: 0, y: 0, width: width, height: height)
-    }
-    
-    func setupProcessedCameraImageView() {
-        // Assuming Landscape
-        let width : CGFloat = self.view.frame.width / 2
-        let height = self.view.frame.height / 2
-        processedCameraFrame = CGRect(x: width, y: 0, width: width, height: height)
-        
-        // Setup Imageview
-        processedCameraView.frame = processedCameraFrame
-        processedCameraView.backgroundColor = .green
-        processedCameraView.contentMode = .scaleAspectFit
-        view.addSubview(processedCameraView)
-    }
-    
-    func setupPredictionLabel() {
-        // Assuming Landscape
-        let width : CGFloat = (self.view.frame.width / 2) - 40
-        let height = (self.view.frame.height / 2) - 40
-        PredictionLabelFrame = CGRect(x: 20, y: height+60, width: width, height: height)
-        
-        // Setup Label
-        PredictionLabel.frame = PredictionLabelFrame
-        PredictionLabel.textColor = .white
-        PredictionLabel.backgroundColor = .black
-        PredictionLabel.text = "Loading..."
-        view.addSubview(PredictionLabel)
-    }
-    
-    func setupPredictionLabel2() {
-        // Assuming Landscape
-        let width : CGFloat = (self.view.frame.width / 2) - 40
-        let height = (self.view.frame.height / 2) - 40
-        PredictionLabel2Frame = CGRect(x: width+60, y: height+60, width: width, height: height)
-        
-        // Setup Label
-        PredictionLabel2.frame = PredictionLabel2Frame
-        PredictionLabel2.textColor = .white
-        PredictionLabel2.backgroundColor = .black
-        PredictionLabel2.text = "Loading..."
-        view.addSubview(PredictionLabel2)
-    }
-    
-    func setupCrop() {
-        // Assuming Landscape!
-        let width : CGFloat = self.view.frame.width / 4
-        let height = self.view.frame.height / 3
-        MLCropFrame = CGRect(x: width-40, y: height/3, width: height, height: height)
-        MLCropView.frame = MLCropFrame
-        MLCropView.layer.masksToBounds = true
-        MLCropView.layer.borderColor = UIColor.yellow.cgColor
-        MLCropView.backgroundColor = .clear
-        MLCropView.layer.borderWidth = 4.0
-        view.addSubview(MLCropView)
-    }
-    
-    
-
     // Camera
     func configureCamera() {
         
@@ -218,14 +134,16 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         captureSession.addInput(captureInput)
         
         // Add preview layer to our view to display the open camera screen
-        let previewLayer = AVCaptureVideoPreviewLayer(session: captureSession)
-        view.layer.addSublayer(previewLayer)
-        previewLayer.frame = rawCameraFrame
+        let previewL = AVCaptureVideoPreviewLayer(session: captureSession)
+        previewLayer.sizeThatFits(previewL.preferredFrameSize())
+        previewLayer.layer.addSublayer(previewL)
+        previewL.videoGravity = .resizeAspectFill
+        previewL.frame = previewLayer.bounds
         
         // Flip Because of Landscape
         // Assume landscape right for now
         // Lightning port is on your right when facing the ipad!
-        let plConnection = previewLayer.connection
+        let plConnection = previewL.connection
         plConnection?.videoOrientation = .landscapeRight
         // previewLayer.frame = rawCameraFrame
         
@@ -236,69 +154,48 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         dataOutput.setSampleBufferDelegate(self, queue: DispatchQueue(label: "videoQueue"))
         captureSession.addOutput(dataOutput)
         
-        
-    }
-    
-    func apply(_ filter: CIFilter?, for image: CIImage) -> CIImage {
-        guard let filter = filter else { return image }
-        filter.setValue(image, forKey: kCIInputImageKey)
-        guard let filteredImage = filter.value(forKey: kCIOutputImageKey) else { return image }
-        return filteredImage as! CIImage
     }
     
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
-        
-        // Filter Version
-        let filter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 10])
-        
         connection.videoOrientation = .landscapeRight
-
+        
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {return}
-        var cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
-        cameraImage.cropped(to: MLCropFrame)
-        let context = CIContext()
-        let final = context.createCGImage(cameraImage, from:cameraImage.extent)
-        let filteredImage = UIImage.init(cgImage: final!)
+//        let cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
+//        let finalImage = UIImage(ciImage: cameraImage)
+//
+//        // Asynchronously
+//        DispatchQueue.main.async {
+//            self.previewLayer.image = finalImage
+//        }
         
         
-        
-        // Asynchronously
-        DispatchQueue.main.async {
-            self.processedCameraView.image = filteredImage
-        }
-
         // CoreML
         let request = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
-        guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
-        guard let firstObservation = results.first else {return}
-            
-        print(firstObservation.identifier, firstObservation.confidence)
-        DispatchQueue.main.async {
+            guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
+            guard let firstObservation = results.first else {return}
+            //print(firstObservation.identifier, firstObservation.confidence)
+            DispatchQueue.main.async {
                 if firstObservation.confidence < 0.5{
-                    
+            
                     //For secondary vocalization
                     self.old_char = ""
-                    self.PredictionLabel.text = String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.PredictionLabel.textColor = .white
-                    
-                } else if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > 0.8{
-                    
-                    self.PredictionLabel.text =  String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.PredictionLabel.textColor = .green
+                    //self.predictionLabel.text = String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
+                    self.predictionLabel.text = String(firstObservation.identifier) + "\n😬"
+                    self.predictionLabel.textColor = .yellow
+                    self.previewLayer.layer.borderColor = UIColor.yellow.cgColor
+                } else if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > 0.85{
+                    //self.predictionLabel.text =  String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
+                    self.loadAlphabet = String(firstObservation.identifier)
+                    self.predictionLabel.text = String(firstObservation.identifier) + "\n😎"
+                    self.predictionLabel.textColor = .green
+                    self.previewLayer.layer.borderColor = UIColor.green.cgColor
                     self.old_char = String(firstObservation.identifier)
-                    
                 }
             }
-            
         }
-        
         request.imageCropAndScaleOption = .centerCrop
-        
-        guard let buffer =  buffer(from: filteredImage) else { return }
-        try? VNImageRequestHandler(cvPixelBuffer: buffer, options: [:]).perform([request])
-
-        
+        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])
     }
     
     func buffer(from image: UIImage) -> CVPixelBuffer? {
@@ -326,5 +223,43 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         return pixelBuffer
     }
     
+    var previousAlphabet = ""
+    var message = ""
+    var isAnimatingLetter = false
+    
+    @objc func capturingLetter() {
+        if loadAlphabet == "" || loadAlphabet == "Nothing" {
+            if isAnimatingLetter {
+                print("--Canceled---")
+                isAnimatingLetter = false
+            }
+            return
+        }
+        
+        if loadAlphabet == previousAlphabet {
+            print(loadAlphabet+"!")
+            isAnimatingLetter = false
+            previousAlphabet = ""
+            message += loadAlphabet
+        } else {
+            previousAlphabet = loadAlphabet
+            print(previousAlphabet+"...")
+            isAnimatingLetter = true
+        }
+        //print("Message:" + message)
+    }
     
 }
+
+
+//func CustomButton() -> UIButton {
+//    let button = UIButton(frame: CGRect(x: width / 4, y: height / 1.5, width: width / 4, height: 48))
+//    button.backgroundColor = UIColor(red:0.07, green:0.10, blue:0.16, alpha:1.0)
+//    button.setTitle(buttonText(Position.left), for: .normal)
+//    button.layer.cornerRadius = 10
+//    button.layer.shadowColor = UIColor.gray.cgColor
+//    button.layer.shadowOffset = CGSize(width: 5.0, height: 5.0)
+//    button.layer.shadowOpacity = 0.5
+//
+//    return button
+//}
