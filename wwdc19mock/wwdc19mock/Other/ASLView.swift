@@ -16,8 +16,8 @@ public class ASLView: View {
         let label = UILabel()
         label.translatesAutoresizingMaskIntoConstraints = false
         label.text = "American Sign Language"
-        label.textColor = UIColor(hex: 0xFEEA0C)
-        label.font = .systemFont(ofSize: 20, weight: .bold)
+        label.textColor = .white
+        label.font = .systemFont(ofSize: 50, weight: .ultraLight)
         label.textAlignment = .center
         label.adjustsFontSizeToFitWidth = true
         label.minimumScaleFactor = 0.7
@@ -25,7 +25,7 @@ public class ASLView: View {
     }()
     
     var subtitleImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "img_mnist"))
+        let imageView = UIImageView(image: UIImage(named: "ASL"))
         imageView.translatesAutoresizingMaskIntoConstraints = false
         imageView.contentMode = .scaleAspectFit
         return imageView
@@ -51,13 +51,13 @@ public class ASLView: View {
     
     //  Buttons
     var clearButton: Button = {
-        let button = Button(image: UIImage(named: "img_clear_button"), title: "Clear", color: UIColor(hex: 0xEF416A)!)
+        let button = Button(image: nil, title: "Reset", color: UIColor(hex: 0x938581)!)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
     
     var predictButton: Button = {
-        let button = Button(image: UIImage(named: "img_predict_button"), title: "Predict", color: UIColor(hex: 0x207FA6)!)
+        let button = Button(image: UIImage(named: "Predict"), title: "Predict", color: UIColor(hex: 0x585563)!)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()
@@ -99,7 +99,7 @@ public class ASLView: View {
     
     // Others
     var showAllButton: Button = {
-        let button = Button(image: UIImage(named: "img_show_all_button"), title: "Show all probabilities", color: UIColor(hex: 0x232321)!)
+        let button = Button(image: UIImage(named: "Show"), title: "Toggle to Show All Predictions", color: UIColor(hex: 0x232321)!)
         button.translatesAutoresizingMaskIntoConstraints = false
         return button
     }()

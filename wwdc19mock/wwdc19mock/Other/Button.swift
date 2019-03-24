@@ -21,10 +21,14 @@ class Button: UIButton {
     convenience init(image: UIImage?, title: String, color: UIColor) {
         self.init(type: .system)
         
-        setImage(image, for: .normal)
+        if image != nil {
+            setImage(image, for: .normal)
+        }
+        
         setTitle(title.uppercased(), for: .normal)
         
-        titleLabel?.font = .systemFont(ofSize: 16, weight: .bold)
+        titleLabel?.font = .systemFont(ofSize: 20, weight: .light)
+        
         imageView?.contentMode  = .scaleAspectFit
         
         backgroundColor = color.withAlphaComponent(0.8)
@@ -40,3 +44,8 @@ class Button: UIButton {
     }
     
 }
+
+//enum colourwheel {
+//    case success = UIColor(hex: 0x92DCE5!)
+//    case fail = UIColor(hex: 0x585563!)
+//}

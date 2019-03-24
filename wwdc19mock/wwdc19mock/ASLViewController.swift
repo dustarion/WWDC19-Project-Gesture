@@ -6,12 +6,24 @@
 //  Copyright © 2019 Dalton Prescott Ng. All rights reserved.
 //
 
+// Standard
 import UIKit
 import AVKit
 import CoreMedia
+import Foundation
+
+// ML
+import CoreML
+import Vision
 
 public class ASLViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
-//    private var latestResult: MNISTOutput?
+    
+    // CoreML Model
+    let model = try? VNCoreMLModel(for: Gesture().model)
+    var old_char = ""
+    let detectionThreshold: Float = 0.9
+    var predictEnabled = false
+    var showAllPrediction = false
     
     override public func loadView() {
         view = ASLView(frame: .init(x: 0, y: 0, width: 700, height: 900))
@@ -24,9 +36,9 @@ public class ASLViewController: UIViewController, AVCaptureVideoDataOutputSample
     public override func viewDidLoad() {
         super.viewDidLoad()
         
-        aslView.clearButton.addTarget(self, action: #selector(didTapClearButton), for: .touchUpInside)
-        aslView.predictButton.addTarget(self, action: #selector(didTapPredictButton), for: .touchUpInside)
-        aslView.showAllButton.addTarget(self, action: #selector(didTapShowAllButton), for: .touchUpInside)
+        aslView.clearButton.addTarget(self, action: #selector(ClearButton), for: .touchUpInside)
+        aslView.predictButton.addTarget(self, action: #selector(PredictButton), for: .touchUpInside)
+        aslView.showAllButton.addTarget(self, action: #selector(ShowAllButton), for: .touchUpInside)
     }
     
     override public func viewDidAppear(_ animated: Bool) {
@@ -34,7 +46,7 @@ public class ASLViewController: UIViewController, AVCaptureVideoDataOutputSample
     }
     
     // Camera
-    func configureCamera() {
+    public func configureCamera() {
         
         //Start capture session
         let captureSession = AVCaptureSession()
@@ -72,123 +84,81 @@ public class ASLViewController: UIViewController, AVCaptureVideoDataOutputSample
         
     }
     
-    func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
+    public func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
         connection.videoOrientation = .landscapeRight
         
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {return}
-        //        let cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
-        //        let finalImage = UIImage(ciImage: cameraImage)
-        //
-        //        // Asynchronously
-        //        DispatchQueue.main.async {
-        //            self.previewLayer.image = finalImage
-        //        }
-        
         
         // CoreML
-        /*
         let request = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
             guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
             guard let firstObservation = results.first else {return}
-            //print(firstObservation.identifier, firstObservation.confidence)
+            print(firstObservation.identifier, firstObservation.confidence)
             DispatchQueue.main.async {
-                if firstObservation.confidence < 0.5{
+                if firstObservation.confidence > 0.5 {
                     
                     //For secondary vocalization
                     self.old_char = ""
-                    //self.predictionLabel.text = String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.predictionLabel.text = String(firstObservation.identifier) + "\n😬"
-                    self.predictionLabel.textColor = .yellow
-                    self.previewLayer.layer.borderColor = UIColor.yellow.cgColor
-                } else if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > 0.85{
-                    //self.predictionLabel.text =  String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.loadAlphabet = String(firstObservation.identifier)
-                    self.predictionLabel.text = String(firstObservation.identifier) + "\n😎"
-                    self.predictionLabel.textColor = .green
-                    self.previewLayer.layer.borderColor = UIColor.green.cgColor
+                    self.aslView.previewView.layer.borderColor = UIColor(hex: 0x585563)!.cgColor
+                    if self.showAllPrediction {
+                        self.updateLabels(alphabet: firstObservation.identifier, accuracy: firstObservation.confidence)
+                    }
+                }
+                
+                if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > self.detectionThreshold {
+                    
+                    self.aslView.previewView.layer.borderColor = UIColor(hex: 0x92DCE5)!.cgColor
+                    self.updateLabels(alphabet: firstObservation.identifier, accuracy: firstObservation.confidence)
                     self.old_char = String(firstObservation.identifier)
+                    
+                    if !self.showAllPrediction {
+                        self.predictEnabled = false
+                    }
                 }
             }
         }
         request.imageCropAndScaleOption = .centerCrop
-        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])*/
-    }
-    
-    var previousAlphabet = ""
-    var message = ""
-    var isAnimatingLetter = false
-    
-/*@objc func capturingLetter() {
-        if loadAlphabet == "" || loadAlphabet == "Nothing" {
-            if isAnimatingLetter {
-                print("--Canceled---")
-                isAnimatingLetter = false
-            }
-            return
-        }
         
-        if loadAlphabet == previousAlphabet {
-            print(loadAlphabet+"!")
-            isAnimatingLetter = false
-            previousAlphabet = ""
-            message += loadAlphabet
-        } else {
-            previousAlphabet = loadAlphabet
-            print(previousAlphabet+"...")
-            isAnimatingLetter = true
+        if predictEnabled {
+            try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])
         }
-        //print("Message:" + message)
-    }*/
-    
-    
+    }
     
 }
 
 // MARK: - Actions
 private extension ASLViewController {
     
-    @objc func didTapClearButton() {
-//        aslView.previewView.image = nil
+    @objc func ClearButton() {
         aslView.resultLabel.text = ""
         aslView.accuracyLabel.text = ""
-//        aslView.placeholderView.setHidden(false)
         
         UIView.animate(withDuration: 0.25) {
             self.aslView.layoutIfNeeded()
             self.aslView.showAllButton.alpha = 0
         }
+        
+        showAllPrediction = false
     }
     
-    @objc func didTapPredictButton() {
-        let size = CGSize(width: 28, height: 28)
-        //let image = aslView.previewView.resize(to: size)
-        //guard let buffer = image?.resize(to: size)?.pixelBuffer() else { return }
-        //guard let result = try? MNIST().prediction(image: buffer) else { return }
-        //latestResult = result
+    @objc func PredictButton() {
         
-        //let digit = result.classLabel
-        //let accuracy = result.output[digit]
-        let alphabet = "A"
-        let accuracy = 0.953333
+        // Animation for Loading??/
+        predictEnabled = true
         
-        updateLabels(alphabet: alphabet, accuracy: accuracy)
+        UIView.animate(withDuration: 0.25) {
+            self.aslView.layoutIfNeeded()
+            self.aslView.showAllButton.alpha = 1
+        }
     }
     
-    @objc func didTapShowAllButton() {
-        //guard let result = latestResult else { return }
-        
-        var message = ""
-        
-//        for item in present.sortedResult {
-//            message += "\(item.key): \(item.value.rounded(toPlaces: 5))\n"
-//        }
-        
-        let alert = UIAlertController(title: "All Probabilities", message: message, preferredStyle: .alert)
-        let dismissAction = UIAlertAction(title: "Dismiss", style: .default, handler: nil)
-        alert.addAction(dismissAction)
-        
-        present(alert, animated: true, completion: nil)
+    @objc func ShowAllButton() {
+        predictEnabled = true
+        showAllPrediction.toggle()
+        if showAllPrediction == false {
+            ClearButton()
+        }
     }
     
 }
@@ -196,16 +166,16 @@ private extension ASLViewController {
 // MARK: - Helpers
 private extension ASLViewController {
     
-    func updateLabels(alphabet: String, accuracy: Double?) {
+    func updateLabels(alphabet: String, accuracy: Float) {
         aslView.resultLabel.text = "Prediction: \(alphabet)"
+        aslView.accuracyLabel.text = "Accuracy: \(accuracy)"
         
-        if let anAccuracy = accuracy {
-            aslView.accuracyLabel.text = "Accuracy: \(anAccuracy)"
-        }
-        
-        UIView.animate(withDuration: 0.25) {
-            self.aslView.layoutIfNeeded()
-            self.aslView.showAllButton.alpha = 1
+        if accuracy > detectionThreshold {
+            aslView.resultLabel.textColor = UIColor(hex: 0x92DCE5)!
+            aslView.accuracyLabel.text = aslView.accuracyLabel.text! + "😎"
+        } else {
+            aslView.resultLabel.textColor = .white
+            aslView.accuracyLabel.text = aslView.accuracyLabel.text! + "😬"
         }
     }
     

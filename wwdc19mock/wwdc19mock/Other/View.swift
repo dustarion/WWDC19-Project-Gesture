@@ -25,7 +25,7 @@ public class View: UIView {
     }
     
     public func setViews() {
-        backgroundColor = UIColor(hex: 0x363634)
+        backgroundColor = .black
     }
     
     public func layoutViews() {}
