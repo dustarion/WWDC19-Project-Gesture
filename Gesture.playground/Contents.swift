@@ -36,26 +36,22 @@ enum HandSign: String {
     case nothing = "Empty"
 }
 
-
-
-//class MyViewController : UIViewController {
-//    override func loadView() {
-//        self.view.backgroundColor = .black
-//
-//        let label = UILabel()
-//        label.frame = CGRect(x: 150, y: 200, width: 200, height: 20)
-//        label.text = "Welcome to Gesture!"
-//        label.textColor = .yellow
-//        label.textAlignment = .center
-//        label.center = self.view.center
-//        self.view.addSubview(label)
-//    }
-//}
-
-// Present the view controller in the Live View window
-//PlaygroundPage.current.liveView = MyViewController()
-
-
-
 // Main View
+class IntroViewController : UIViewController {
+    
+    override func loadView() {
+                self.view.backgroundColor = .black
+        
+                let label = UILabel()
+                label.frame = CGRect(x: 150, y: 200, width: 200, height: 20)
+                label.text = "Welcome to Gesture!"
+                label.textColor = .yellow
+                label.textAlignment = .center
+                label.center = self.view.center
+                self.view.addSubview(label)
+    }
+    
+}
+
+PlaygroundPage.current.liveView = IntroViewController()
 

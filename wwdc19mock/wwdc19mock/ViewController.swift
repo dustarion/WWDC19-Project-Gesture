@@ -17,35 +17,35 @@ import CoreML
 import Vision
 
 // Prediction Labels for Sign Language
-enum HandSign: String {
-    case A = "A"
-    case B = "B"
-    case C = "C"
-    case D = "D"
-    case E = "E"
-    case F = "F"
-    case G = "G"
-    case H = "H"
-    case I = "I"
-    case J = "J"
-    case k = "K"
-    case L = "L"
-    case M = "M"
-    case N = "N"
-    case O = "O"
-    case P = "P"
-    case Q = "Q"
-    case R = "R"
-    case S = "S"
-    case T = "T"
-    case U = "U"
-    case V = "V"
-    case W = "W"
-    case X = "X"
-    case Y = "Y"
-    case Z = "Z"
-    case nothing = "Empty"
-}
+//enum HandSign: String {
+//    case A = "A"
+//    case B = "B"
+//    case C = "C"
+//    case D = "D"
+//    case E = "E"
+//    case F = "F"
+//    case G = "G"
+//    case H = "H"
+//    case I = "I"
+//    case J = "J"
+//    case k = "K"
+//    case L = "L"
+//    case M = "M"
+//    case N = "N"
+//    case O = "O"
+//    case P = "P"
+//    case Q = "Q"
+//    case R = "R"
+//    case S = "S"
+//    case T = "T"
+//    case U = "U"
+//    case V = "V"
+//    case W = "W"
+//    case X = "X"
+//    case Y = "Y"
+//    case Z = "Z"
+//    case nothing = "Empty"
+//}
 
 // Filters
 let CMYKHalftone = "CMYK Halftone"
@@ -80,6 +80,22 @@ let HistogramFilter = CIFilter(name: "CIHistogramDisplayFilter")
 //let HistogramFiler = CIFilter(name: "CIHistogramDisplayFilter", keysAndValues: kCIInputImageKey, inputImage(), "inputHeight", NSNumber(value: 100.0), "inputHighLimit", NSNumber(value: 1.0), "inputLowLimit", NSNumber(value: 0.0), nil)
 
 
+extension UIImage {
+    func crop( rect: CGRect) -> UIImage? {
+        var rect = rect
+        rect.origin.x*=self.scale
+        rect.origin.y*=self.scale
+        rect.size.width*=self.scale
+        rect.size.height*=self.scale
+        if self.cgImage == nil { return self }
+        let imageRef = self.cgImage!.cropping(to: rect)
+        let image = UIImage(cgImage: imageRef!, scale: self.scale, orientation: self.imageOrientation)
+        return image
+    }
+}
+
+
+
 class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDelegate {
     
     // CoreML Model
@@ -99,8 +115,8 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     var PredictionLabel2Frame = CGRect()
     var PredictionLabel2 = UITextView()
     
-//    var MLCropFrame = CGRect()
-//    var MLCropView = UIImageView()
+    var MLCropFrame = CGRect()
+    var MLCropView = UIView()
 //
 //    var BackgroundImage : CIImage?
 //    var CurrentProcessedImage : CIImage?
@@ -119,6 +135,7 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
     
     override func viewDidAppear(_ animated: Bool) {
         configureCamera()
+        setupCrop()
     }
     
     func setupCameraFrame() {
@@ -169,6 +186,19 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         view.addSubview(PredictionLabel2)
     }
     
+    func setupCrop() {
+        // Assuming Landscape!
+        let width : CGFloat = self.view.frame.width / 4
+        let height = self.view.frame.height / 3
+        MLCropFrame = CGRect(x: width-40, y: height/3, width: height, height: height)
+        MLCropView.frame = MLCropFrame
+        MLCropView.layer.masksToBounds = true
+        MLCropView.layer.borderColor = UIColor.yellow.cgColor
+        MLCropView.backgroundColor = .clear
+        MLCropView.layer.borderWidth = 4.0
+        view.addSubview(MLCropView)
+    }
+    
     
 
     // Camera
@@ -193,10 +223,10 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         previewLayer.frame = rawCameraFrame
         
         // Flip Because of Landscape
-        // Assume landscape left for now
-        // Lightning port is on your left when facing the ipad !
+        // Assume landscape right for now
+        // Lightning port is on your right when facing the ipad!
         let plConnection = previewLayer.connection
-        plConnection?.videoOrientation = .landscapeLeft
+        plConnection?.videoOrientation = .landscapeRight
         // previewLayer.frame = rawCameraFrame
         
         // Add output of capture
@@ -216,28 +246,22 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         return filteredImage as! CIImage
     }
     
-//    func convertCIImageToCGImage(inputImage: CIImage) -> CGImage! {
-//        let context = CIContext(options: nil)
-//        return context.createCGImage(inputImage, from: inputImage.extent)
-//    }
-//
-//    func convertCGImageToCIImage(inputImage: CGImage) -> CIImage! {
-//        var ciImage = CIImage(cgImage: inputImage)
-//        return ciImage
-//    }
-    
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         
         
         // Filter Version
         let filter = CIFilter(name: "CIEdges", parameters: ["inputIntensity" : 10])
         
-        connection.videoOrientation = .landscapeLeft
+        connection.videoOrientation = .landscapeRight
 
         guard let pixelBuffer: CVPixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else {return}
         var cameraImage = CIImage(cvPixelBuffer: pixelBuffer)
-        cameraImage = apply(filter, for: cameraImage)
-        let filteredImage = UIImage(ciImage: cameraImage)
+        cameraImage.cropped(to: MLCropFrame)
+        let context = CIContext()
+        let final = context.createCGImage(cameraImage, from:cameraImage.extent)
+        let filteredImage = UIImage.init(cgImage: final!)
+        
+        
         
         // Asynchronously
         DispatchQueue.main.async {
@@ -271,40 +295,8 @@ class ViewController: UIViewController, AVCaptureVideoDataOutputSampleBufferDele
         
         request.imageCropAndScaleOption = .centerCrop
         
-        //guard let buffer =  buffer(from: filteredImage) else { return }
-        try? VNImageRequestHandler(cvPixelBuffer: pixelBuffer, options: [:]).perform([request])
-        
-        // Filtered Image CoreML!!
-        
-        // CoreML
-        let request2 = VNCoreMLRequest(model: model!){ (fineshedReq, err) in
-            guard let results = fineshedReq.results as? [VNClassificationObservation] else {return}
-            guard let firstObservation = results.first else {return}
-            
-            print(firstObservation.identifier, firstObservation.confidence)
-            DispatchQueue.main.async {
-                if firstObservation.confidence < 0.5{
-                    
-                    //For secondary vocalization
-                    self.old_char = ""
-                    self.PredictionLabel2.text = String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.PredictionLabel2.textColor = .white
-                    
-                } else if self.old_char != String(firstObservation.identifier) && firstObservation.confidence > 0.8{
-                    
-                    self.PredictionLabel2.text =  String(firstObservation.identifier) + "\nConfidence: " + String(firstObservation.confidence)
-                    self.PredictionLabel2.textColor = .green
-                    self.old_char = String(firstObservation.identifier)
-                    
-                }
-            }
-            
-        }
-        
-        request2.imageCropAndScaleOption = .centerCrop
-        
         guard let buffer =  buffer(from: filteredImage) else { return }
-        try? VNImageRequestHandler(cvPixelBuffer: buffer, options: [:]).perform([request2])
+        try? VNImageRequestHandler(cvPixelBuffer: buffer, options: [:]).perform([request])
 
         
     }
