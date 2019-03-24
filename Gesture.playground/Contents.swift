@@ -36,22 +36,33 @@ enum HandSign: String {
     case nothing = "Empty"
 }
 
+// Useful Helpers
+
+extension CGRect {
+    var center: CGPoint { return CGPoint(x: midX, y: midY) }
+}
+
+
+
+
 // Main View
-class IntroViewController : UIViewController {
+class IntroViewController: UIViewController {
+    override func viewDidLoad() {
+        self.view.backgroundColor = .black
+    }
     
-    override func loadView() {
-                self.view.backgroundColor = .black
-        
-                let label = UILabel()
-                label.frame = CGRect(x: 150, y: 200, width: 200, height: 20)
-                label.text = "Welcome to Gesture!"
-                label.textColor = .yellow
-                label.textAlignment = .center
-                label.center = self.view.center
-                self.view.addSubview(label)
+    override func viewDidLayoutSubviews() {
+            self.view.backgroundColor = .black
+            let label = UILabel()
+            label.text = "Welcome to Gesture!"
+            label.textColor = .yellow
+            label.textAlignment = .center
+            label.center = self.view.center
+            self.view.addSubview(label)
     }
     
 }
 
+let IntroVC = IntroViewController()
 PlaygroundPage.current.liveView = IntroViewController()
 
